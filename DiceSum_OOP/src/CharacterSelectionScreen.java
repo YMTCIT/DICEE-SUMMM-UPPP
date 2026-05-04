@@ -8,38 +8,51 @@ import java.io.IOException;
 
 public class CharacterSelectionScreen extends JPanel {
 
-    private static final String BG_PATH          = "assets/background_charselect.png";
-    private static final String BTN_CONFIRM_PATH = "assets/btn_confirm.png";
-    private static final String BTN_BACK_PATH    = "assets/btn_back.png";
-    private static final String ARROW_LEFT_PATH  = "assets/arrow_left.png";
-    private static final String ARROW_RIGHT_PATH = "assets/arrow_right.png";
-    private static final String CARD_BG_PATH     = "assets/card_bg.png";
-    private static final String FRAME_PATH       = "assets/portrait_frame.png";
+    private static final String BG_PATH           = "assets/backgrounds/background_charselect.png";
+    private static final String BTN_CONFIRM_PATH  = "assets/buttons/btn_confirm.png";
+    private static final String BTN_BACK_PATH     = "assets/buttons/btn_back.png";
+    private static final String ARROW_LEFT_PATH   = "assets/ui/arrow_left.png";
+    private static final String ARROW_RIGHT_PATH  = "assets/ui/arrow_right.png";
+    private static final String CARD_BG_PATH      = "assets/ui/card_bg.png";
+    private static final String PLAYER1_IMG_PATH  = "assets/ui/player1.png";
+    private static final String PLAYER2_IMG_PATH  = "assets/ui/player2.png";
+    private static final String PLAYER_IMG_PATH   = "assets/ui/player.png";
+    private static final String COMPUTER_IMG_PATH = "assets/ui/computer.png";
 
-    private static final int BTN_WIDTH   = 250;
-    private static final int BTN_HEIGHT  = 55;
-    private static final int ARROW_SIZE  = 80;
-    private static final int CARD_WIDTH  = 320;
-    private static final int CARD_HEIGHT = 400;
+    private static final int BTN_WIDTH    = 250;
+    private static final int BTN_HEIGHT   = 55;
+    private static final int ARROW_SIZE   = 76;
+    private static final int CARD_WIDTH   = 270;
+    private static final int CARD_HEIGHT  = 380;
+    private static final int BADGE_W      = 80;
+    private static final int BADGE_H      = 40;
+    private static final int PORTRAIT_AREA_W = 220;
+    private static final int PORTRAIT_AREA_H = 150;
+    private static final int PORTRAIT_TOP    = 12;
+    private static final int NAME_BAR_H      = 28;
 
-    // ── Character data ────────────────────────────────────────────────────────
     private static final String[][] CHARACTERS = {
-            { "Echo",   "Assassin", "Osaka, Japan",       "80",  "4.0×", "Phantom Dance – Dodge next 2 attacks (CD: 5 turns)"         },
-            { "Zyah",   "Assassin", "Kingston, Jamaica",  "80",  "4.0×", "Dancehall Fever – Guaranteed extra turn (CD: 4 turns)"      },
-            { "Raze",   "Fighter",  "Seoul, South Korea", "115", "3.0×", "Blazing Combo – +8 damage for 3 attacks (CD: 5 turns)"      },
-            { "Vibe",   "Fighter",  "Milan, Italy",       "110", "3.0×", "House Foundation – 50% dmg reduction 2 turns (CD: 4 turns)" },
-            { "Torque", "Tank",     "Los Angeles, USA",   "150", "2.0×", "Earthquake Stomp – Stun enemy 2 turns (CD: 4 turns)"        },
-            { "Luma",   "Tank",     "São Paulo, Brazil",  "140", "2.0×", "Radiant Burst – Heal 30 HP (CD: 4 turns)"                   },
-            { "Lyric",  "Support",  "Paris, France",      "105", "2.0×", "Healing Freestyle – Heal 35 HP (CD: 3 turns)"               },
-            { "Ayo",    "Support",  "Lagos, Nigeria",     "100", "2.0×", "Ancestral Call – Revive 50% HP (CD: 5 turns, once/battle)"  },
+            { "Echo",   "Assassin", "Osaka, Japan",       "80",  "4.0x", "Phantom Dance - Dodge next 2 attacks (CD: 5 turns)" },
+            { "Zyah",   "Assassin", "Kingston, Jamaica",  "80",  "4.0x", "Dancehall Fever - Guaranteed extra turn (CD: 4 turns)" },
+            { "Raze",   "Fighter",  "Seoul, South Korea", "115", "3.0x", "Blazing Combo - +8 damage for 3 attacks (CD: 5 turns)" },
+            { "Vibe",   "Fighter",  "Milan, Italy",       "110", "3.0x", "House Foundation - 50% dmg reduction 2 turns (CD: 4 turns)" },
+            { "Torque", "Tank",     "Los Angeles, USA",   "150", "2.0x", "Earthquake Stomp - Stun enemy 2 turns (CD: 4 turns)" },
+            { "Luma",   "Tank",     "Sao Paulo, Brazil",  "140", "2.0x", "Radiant Burst - Heal 30 HP (CD: 4 turns)" },
+            { "Lyric",  "Support",  "Paris, France",      "105", "2.0x", "Healing Freestyle - Heal 35 HP (CD: 3 turns)" },
+            { "Ayo",    "Support",  "Lagos, Nigeria",     "100", "2.0x", "Ancestral Call - Revive 50% HP (CD: 5 turns, once/battle)" },
     };
 
     private static final String[] PORTRAIT_FILES = {
-            "assets/echo.png",  "assets/zyah.png",  "assets/raze.png",  "assets/vibe.png",
-            "assets/torque.png","assets/luma.png",  "assets/lyric.png", "assets/ayo.png"
+            "assets/characters/portraits/echo.gif",
+            "assets/characters/portraits/zyah.gif",
+            "assets/characters/portraits/raze.gif",
+            "assets/characters/portraits/vibee.gif",
+            "assets/characters/portraits/torque.gif",
+            "assets/characters/portraits/luma.gif",
+            "assets/characters/portraits/lyric.gif",
+            "assets/characters/portraits/ayo.gif"
     };
 
-    // ── Class colors ──────────────────────────────────────────────────────────
     private static final Color COLOR_ASSASSIN = new Color(180, 50,  50);
     private static final Color COLOR_FIGHTER  = new Color(200, 120, 30);
     private static final Color COLOR_TANK     = new Color(50,  100, 200);
@@ -48,47 +61,59 @@ public class CharacterSelectionScreen extends JPanel {
     private final GameWindow gameWindow;
     private final String     gameMode;
 
-    private BufferedImage bgImage;
-    private BufferedImage btnConfirmImg;
-    private BufferedImage btnBackImg;
-    private BufferedImage arrowLeftImg;
-    private BufferedImage arrowRightImg;
-    private BufferedImage cardBgImg;
-    private BufferedImage portraitFrameImg;
-    private BufferedImage[] portraits = new BufferedImage[8];
+    // ── NEW: arcade player name (null for PVP / PVC) ─────────────────────────
+    private final String arcadePlayerName;
 
-    private int     currentIndex = 0;
-    private int     p1Choice     = -1;
-    private boolean p1Done       = false;
+    private int currentPlayer = 1;
+    private int p1Choice      = -1;
+    private int currentIndex  = 0;
 
-    private Rectangle arrowLeftRect  = new Rectangle();
-    private Rectangle arrowRightRect = new Rectangle();
-    private Rectangle confirmRect    = new Rectangle();
-    private Rectangle backRect       = new Rectangle();
+    private BufferedImage bgImage, btnConfirmImg, btnBackImg;
+    private BufferedImage arrowLeftImg, arrowRightImg, cardBgImg;
+    private BufferedImage player1Img, player2Img, playerImg, computerImg;
+    private final Image[] portraitImages = new Image[8];
+
+    private final Rectangle arrowLeftRect  = new Rectangle();
+    private final Rectangle arrowRightRect = new Rectangle();
+    private final Rectangle confirmRect    = new Rectangle();
+    private final Rectangle backRect       = new Rectangle();
 
     private boolean hoverLeft    = false;
     private boolean hoverRight   = false;
     private boolean hoverConfirm = false;
     private boolean hoverBack    = false;
 
+    // ── Original 2-arg constructor — PVP / PVC (unchanged behaviour) ─────────
     public CharacterSelectionScreen(GameWindow gameWindow, String gameMode) {
-        this.gameWindow = gameWindow;
-        this.gameMode   = gameMode;
+        this(gameWindow, gameMode, null);
+    }
+
+    // ── NEW 3-arg constructor — Arcade passes a player name ──────────────────
+    public CharacterSelectionScreen(GameWindow gameWindow, String gameMode, String playerName) {
+        this.gameWindow       = gameWindow;
+        this.gameMode         = gameMode;
+        this.arcadePlayerName = playerName;
         setLayout(null);
         loadImages();
         addMouseListeners();
     }
 
+    // ── Image loading ─────────────────────────────────────────────────────────
     private void loadImages() {
-        bgImage          = loadImage(BG_PATH);
-        btnConfirmImg    = loadImage(BTN_CONFIRM_PATH);
-        btnBackImg       = loadImage(BTN_BACK_PATH);
-        arrowLeftImg     = loadImage(ARROW_LEFT_PATH);
-        arrowRightImg    = loadImage(ARROW_RIGHT_PATH);
-        cardBgImg        = loadImage(CARD_BG_PATH);
-        portraitFrameImg = loadImage(FRAME_PATH);
-        for (int i = 0; i < 8; i++) {
-            portraits[i] = loadImage(PORTRAIT_FILES[i]);
+        bgImage       = loadImage(BG_PATH);
+        btnConfirmImg = loadImage(BTN_CONFIRM_PATH);
+        btnBackImg    = loadImage(BTN_BACK_PATH);
+        arrowLeftImg  = loadImage(ARROW_LEFT_PATH);
+        arrowRightImg = loadImage(ARROW_RIGHT_PATH);
+        cardBgImg     = loadImage(CARD_BG_PATH);
+        player1Img    = loadImage(PLAYER1_IMG_PATH);
+        player2Img    = loadImage(PLAYER2_IMG_PATH);
+        playerImg     = loadImage(PLAYER_IMG_PATH);
+        computerImg   = loadImage(COMPUTER_IMG_PATH);
+
+        for (int i = 0; i < PORTRAIT_FILES.length; i++) {
+            File f = new File(PORTRAIT_FILES[i]);
+            if (f.exists()) portraitImages[i] = new ImageIcon(PORTRAIT_FILES[i]).getImage();
         }
     }
 
@@ -96,192 +121,191 @@ public class CharacterSelectionScreen extends JPanel {
         try {
             return ImageIO.read(new File(path));
         } catch (IOException e) {
-            System.err.println("Could not load image: " + path);
+            System.err.println("Could not load: " + path);
             return null;
         }
     }
 
+    // ── Paint ─────────────────────────────────────────────────────────────────
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        Graphics2D g2 = (Graphics2D) g;
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,  RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
-        int w = getWidth();
-        int h = getHeight();
+        int w = getWidth(), h = getHeight();
 
-        // Background
-        if (bgImage != null) {
-            g2.drawImage(bgImage, 0, 0, w, h, null);
-        } else {
-            g2.setColor(new Color(20, 15, 10));
-            g2.fillRect(0, 0, w, h);
-        }
+        if (bgImage != null) g2.drawImage(bgImage, 0, 0, w, h, null);
+        else { g2.setColor(new Color(20, 15, 10)); g2.fillRect(0, 0, w, h); }
 
-        // Card center position
-        int cardX = (w - CARD_WIDTH) / 2;
-        int cardY = (h - CARD_HEIGHT) / 2 - 30;
+        int cardX = (w - CARD_WIDTH)  / 2;
+        int cardY = Math.max(115, (h - CARD_HEIGHT) / 2 - 8);
 
-        // Draw the big card
+        drawSideBadges(g2, w);
         drawCard(g2, currentIndex, cardX, cardY);
 
-        // Left arrow
-        int arrowY = cardY + (CARD_HEIGHT - ARROW_SIZE) / 2;
-        int leftX  = cardX - ARROW_SIZE - 20;
-        arrowLeftRect.setBounds(leftX, arrowY, ARROW_SIZE, ARROW_SIZE);
-        drawArrow(g2, arrowLeftImg, arrowLeftRect, hoverLeft, "<");
-
-        // Right arrow
-        int rightX = cardX + CARD_WIDTH + 20;
-        arrowRightRect.setBounds(rightX, arrowY, ARROW_SIZE, ARROW_SIZE);
+        int arrowY = cardY + 80;
+        arrowLeftRect.setBounds(cardX - ARROW_SIZE - 18, arrowY, ARROW_SIZE, ARROW_SIZE);
+        arrowRightRect.setBounds(cardX + CARD_WIDTH + 18, arrowY, ARROW_SIZE, ARROW_SIZE);
+        drawArrow(g2, arrowLeftImg,  arrowLeftRect,  hoverLeft,  "<");
         drawArrow(g2, arrowRightImg, arrowRightRect, hoverRight, ">");
 
-        // Character counter below card
-        String counter = (currentIndex + 1) + " / " + CHARACTERS.length;
-        g2.setFont(new Font("Arial", Font.BOLD, 15));
-        g2.setColor(new Color(200, 200, 200));
-        FontMetrics fm = g2.getFontMetrics();
-        g2.drawString(counter, (w - fm.stringWidth(counter)) / 2,
-                cardY + CARD_HEIGHT + 15);
+        String counter = (currentIndex + 1) + "/8";
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setColor(Color.WHITE);
+        FontMetrics fmC = g2.getFontMetrics();
+        g2.drawString(counter, (w - fmC.stringWidth(counter)) / 2, cardY + CARD_HEIGHT + 18);
 
-        // Confirm button
-        int bx = (w - BTN_WIDTH) / 2;
-        int by = cardY + CARD_HEIGHT + 30;
-        confirmRect.setBounds(bx, by, BTN_WIDTH, BTN_HEIGHT);
+        confirmRect.setBounds((w - BTN_WIDTH) / 2, cardY + CARD_HEIGHT + 32, BTN_WIDTH, BTN_HEIGHT);
         drawButton(g2, btnConfirmImg, confirmRect, hoverConfirm, "CONFIRM");
 
-        // Back button — top left
-        backRect.setBounds(20, 20, BTN_WIDTH - 100, BTN_HEIGHT - 10);
-        drawButton(g2, btnBackImg, backRect, hoverBack, "BACK");
+        backRect.setBounds(14, 18, 150, 44);
+        drawButton(g2, btnBackImg, backRect, hoverBack, "RETURN");
 
-        // P1 chosen indicator — bottom left
-        if (p1Done) {
-            String p1Text = "P1 chose: " + CHARACTERS[p1Choice][0];
-            g2.setFont(new Font("Arial", Font.BOLD, 15));
-            g2.setColor(new Color(50, 120, 220));
-            g2.drawString(p1Text, 20, h - 20);
+        // Arcade: show current player name tag at bottom-left
+        if ("ARCADE".equals(gameMode) && arcadePlayerName != null) {
+            g2.setFont(new Font("Courier New", Font.BOLD, 13));
+            g2.setColor(new Color(255, 200, 0));
+            g2.drawString("PLAYER: " + arcadePlayerName, 18, h - 18);
         }
+
+        // PVP only: show P1 chosen indicator
+        if (currentPlayer == 2 && p1Choice >= 0 && !"ARCADE".equals(gameMode)) {
+            g2.setFont(new Font("Arial", Font.BOLD, 12));
+            g2.setColor(new Color(110, 180, 255));
+            g2.drawString("P1 chose: " + CHARACTERS[p1Choice][0], 18, h - 18);
+        }
+
+        g2.dispose();
+    }
+
+    // ── All drawing helpers are identical to the original ─────────────────────
+
+    private void drawSideBadges(Graphics2D g2, int panelWidth) {
+        int y = 118;
+        if ("PVP".equals(gameMode)) {
+            drawBadge(g2, player1Img, 70, y, currentPlayer == 1, "P1", new Color(190, 30, 30));
+            drawBadge(g2, player2Img, panelWidth - 70 - BADGE_W, y, currentPlayer == 2, "P2", new Color(40, 110, 220));
+        } else if ("PVC".equals(gameMode)) {
+            drawBadge(g2, playerImg, 70, y, currentPlayer == 1, "P1", new Color(190, 30, 30));
+            drawBadge(g2, computerImg, panelWidth - 70 - BADGE_W, y, currentPlayer == 2, "CPU", new Color(40, 110, 220));
+        } else {
+            // ARCADE — single badge
+            drawBadge(g2, playerImg, (panelWidth - BADGE_W) / 2, 88, true, "P1", new Color(190, 30, 30));
+        }
+    }
+
+    private void drawBadge(Graphics2D g2, BufferedImage img, int x, int y,
+                           boolean active, String fallback, Color fallbackColor) {
+        Graphics2D gb = (Graphics2D) g2.create();
+        gb.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, active ? 1.0f : 0.45f));
+        if (img != null) {
+            gb.drawImage(img, x, y, BADGE_W, BADGE_H, null);
+        } else {
+            gb.setColor(fallbackColor);
+            gb.fillRoundRect(x, y, BADGE_W, BADGE_H, 8, 8);
+            gb.setColor(Color.WHITE);
+            gb.setFont(new Font("Monospaced", Font.BOLD, 18));
+            FontMetrics fm = gb.getFontMetrics();
+            gb.drawString(fallback, x + (BADGE_W - fm.stringWidth(fallback)) / 2,
+                    y + (BADGE_H + fm.getAscent() - fm.getDescent()) / 2);
+        }
+        gb.dispose();
     }
 
     private void drawCard(Graphics2D g2, int index, int x, int y) {
-        String[] data      = CHARACTERS[index];
-        String   name      = data[0];
-        String   cls       = data[1];
-        String   origin    = data[2];
-        String   hp        = data[3];
-        String   dmg       = data[4];
-        String   skill     = data[5];
-        Color    classColor = getClassColor(cls);
+        String[] data = CHARACTERS[index];
+        Color classColor = getClassColor(data[1]);
 
-        // Card background
-        if (cardBgImg != null) {
-            g2.drawImage(cardBgImg, x, y, CARD_WIDTH, CARD_HEIGHT, null);
-        } else {
-            g2.setColor(new Color(25, 20, 40, 220));
-            g2.fillRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 20, 20);
+        if (cardBgImg != null) g2.drawImage(cardBgImg, x, y, CARD_WIDTH, CARD_HEIGHT, null);
+        else {
+            g2.setColor(new Color(223, 202, 177));
+            g2.fillRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 16, 16);
+            g2.setColor(new Color(143, 93, 53));
+            g2.setStroke(new BasicStroke(3f));
+            g2.drawRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 16, 16);
         }
 
-        // Portrait
-        int portraitSize = 120;
-        int px = x + (CARD_WIDTH - portraitSize) / 2;
-        int py = y + 15;
+        int portraitAreaX = x + (CARD_WIDTH - PORTRAIT_AREA_W) / 2;
+        int portraitAreaY = y + PORTRAIT_TOP;
+        drawPortraitDirectlyOnCard(g2, portraitImages[index], portraitAreaX, portraitAreaY,
+                PORTRAIT_AREA_W, PORTRAIT_AREA_H);
 
-        if (portraits[index] != null) {
-            g2.drawImage(portraits[index], px, py, portraitSize, portraitSize, null);
-        } else {
-            g2.setColor(new Color(50, 40, 30));
-            g2.fillRoundRect(px, py, portraitSize, portraitSize, 12, 12);
-            g2.setColor(new Color(150, 150, 150));
-            g2.setFont(new Font("Arial", Font.PLAIN, 12));
-            FontMetrics fm = g2.getFontMetrics();
-            String ph = "PORTRAIT";
-            g2.drawString(ph, px + (portraitSize - fm.stringWidth(ph)) / 2,
-                    py + portraitSize / 2 + 5);
-        }
+        int nameBarY = y + 162;
+        GradientPaint gp = new GradientPaint(x, nameBarY, new Color(194, 194, 194),
+                x, nameBarY + NAME_BAR_H, new Color(118, 118, 118));
+        g2.setPaint(gp);
+        g2.fillRect(x + 2, nameBarY, CARD_WIDTH - 4, NAME_BAR_H);
+        g2.setColor(new Color(220, 220, 220, 150));
+        g2.drawLine(x + 2, nameBarY, x + CARD_WIDTH - 2, nameBarY);
 
-        // Portrait frame drawn on top — delete next 3 lines if portrait is hidden
-
-
-        int textY = py + portraitSize + 20;
-        FontMetrics fm;
-
-        // Name
-        g2.setFont(new Font("Arial", Font.BOLD, 22));
-        g2.setColor(new Color(255, 220, 100));
-        fm = g2.getFontMetrics();
-        g2.drawString(name, x + (CARD_WIDTH - fm.stringWidth(name)) / 2, textY);
-        textY += 24;
-
-        // Class badge
-        int badgeW = 100;
-        int badgeH = 20;
-        int badgeX = x + (CARD_WIDTH - badgeW) / 2;
-        g2.setColor(classColor);
-        g2.fillRoundRect(badgeX, textY - 14, badgeW, badgeH, 10, 10);
-        g2.setFont(new Font("Arial", Font.BOLD, 12));
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
         g2.setColor(Color.WHITE);
-        fm = g2.getFontMetrics();
-        String clsUpper = cls.toUpperCase();
-        g2.drawString(clsUpper,
-                badgeX + (badgeW - fm.stringWidth(clsUpper)) / 2,
-                textY);
-        textY += 22;
+        FontMetrics fmN = g2.getFontMetrics();
+        g2.drawString(data[0], x + (CARD_WIDTH - fmN.stringWidth(data[0])) / 2,
+                nameBarY + (NAME_BAR_H + fmN.getAscent() - fmN.getDescent()) / 2);
 
-        // Divider
-        g2.setColor(new Color(255, 255, 255, 40));
-        g2.setStroke(new BasicStroke(1));
-        g2.drawLine(x + 20, textY, x + CARD_WIDTH - 20, textY);
-        textY += 14;
+        int roleBadgeW = 92, roleBadgeH = 20;
+        int roleBadgeX = x + (CARD_WIDTH - roleBadgeW) / 2;
+        int roleBadgeY = nameBarY + NAME_BAR_H - 2;
+        g2.setColor(classColor);
+        g2.fillRoundRect(roleBadgeX, roleBadgeY, roleBadgeW, roleBadgeH, 10, 10);
+        g2.setFont(new Font("Arial", Font.BOLD, 10));
+        g2.setColor(Color.WHITE);
+        FontMetrics fmR = g2.getFontMetrics();
+        String roleText = data[1].toUpperCase();
+        g2.drawString(roleText, roleBadgeX + (roleBadgeW - fmR.stringWidth(roleText)) / 2,
+                roleBadgeY + (roleBadgeH + fmR.getAscent() - fmR.getDescent()) / 2);
 
-        // Stats
-        int statX = x + 20;
-        int lineH = 22;
-        drawStatRow(g2, statX, textY, "Origin",  origin);
-        textY += lineH;
-        drawStatRow(g2, statX, textY, "Health",  hp + " HP");
-        textY += lineH;
-        drawStatRow(g2, statX, textY, "Damage",  dmg);
-        textY += lineH + 4;
+        int contentY = roleBadgeY + roleBadgeH + 18;
+        int labelX = x + 16, valueX = x + 102;
+        g2.setColor(new Color(155, 120, 85, 110));
+        g2.drawLine(x + 14, contentY - 10, x + CARD_WIDTH - 14, contentY - 10);
 
-        // Special skill label
+        drawStatRow(g2, labelX, valueX, contentY, "Origin",      data[2]); contentY += 22;
+        drawStatRow(g2, labelX, valueX, contentY, "Health",      data[3] + " HP"); contentY += 22;
+        drawStatRow(g2, labelX, valueX, contentY, "Base Damage", data[4]); contentY += 28;
+
         g2.setFont(new Font("Arial", Font.BOLD, 11));
         g2.setColor(classColor);
-        g2.drawString("SPECIAL SKILL", statX, textY);
-        textY += 16;
+        g2.drawString("Special Skill", labelX, contentY); contentY += 14;
 
-        // Special skill text — word wrapped
         g2.setFont(new Font("Arial", Font.PLAIN, 11));
-        g2.setColor(new Color(255, 200, 80));
-        drawWrappedText(g2, skill, statX, textY, CARD_WIDTH - 40, 14);
+        g2.setColor(new Color(50, 34, 20));
+        drawWrappedText(g2, data[5], labelX, contentY, CARD_WIDTH - 32, 13);
     }
 
-    private void drawStatRow(Graphics2D g2, int x, int y, String label, String value) {
-        g2.setFont(new Font("Arial", Font.BOLD, 12));
-        g2.setColor(new Color(160, 160, 160));
-        g2.drawString(label + ":", x, y);
-        g2.setFont(new Font("Arial", Font.PLAIN, 12));
-        g2.setColor(Color.WHITE);
-        g2.drawString(value, x + 80, y);
+    private void drawPortraitDirectlyOnCard(Graphics2D g2, Image image, int x, int y, int areaW, int areaH) {
+        if (image == null) return;
+        int iw = image.getWidth(this), ih = image.getHeight(this);
+        if (iw <= 0 || ih <= 0) { g2.drawImage(image, x, y, areaW, areaH, this); return; }
+        double scale = Math.min((double) areaW / iw, (double) areaH / ih);
+        int drawW = Math.max(1, (int) Math.round(iw * scale));
+        int drawH = Math.max(1, (int) Math.round(ih * scale));
+        int drawX = x + (areaW - drawW) / 2;
+        int drawY = y + areaH - drawH;
+        g2.setColor(new Color(0, 0, 0, 35));
+        g2.fillOval(x + 30, y + areaH - 10, areaW - 60, 12);
+        g2.drawImage(image, drawX, drawY, drawW, drawH, this);
     }
 
-    private void drawWrappedText(Graphics2D g2, String text, int x, int y,
-                                 int maxWidth, int lineHeight) {
-        FontMetrics   fm    = g2.getFontMetrics();
-        String[]      words = text.split(" ");
-        StringBuilder line  = new StringBuilder();
+    private void drawStatRow(Graphics2D g2, int lx, int vx, int y, String label, String value) {
+        g2.setFont(new Font("Arial", Font.BOLD,  12)); g2.setColor(new Color(65, 45, 25));
+        g2.drawString(label + ":", lx, y);
+        g2.setFont(new Font("Arial", Font.PLAIN, 12)); g2.setColor(new Color(28, 20, 10));
+        g2.drawString(value, vx, y);
+    }
+
+    private void drawWrappedText(Graphics2D g2, String text, int x, int y, int maxW, int lineH) {
+        FontMetrics fm = g2.getFontMetrics();
+        String[] words = text.split(" ");
+        StringBuilder line = new StringBuilder();
         for (String word : words) {
-            String test = line + (line.length() > 0 ? " " : "") + word;
-            if (fm.stringWidth(test) > maxWidth) {
-                g2.drawString(line.toString(), x, y);
-                y   += lineHeight;
-                line = new StringBuilder(word);
-            } else {
-                if (line.length() > 0) line.append(" ");
-                line.append(word);
-            }
+            String test = line.length() == 0 ? word : line + " " + word;
+            if (fm.stringWidth(test) > maxW && line.length() > 0) {
+                g2.drawString(line.toString(), x, y); y += lineH; line = new StringBuilder(word);
+            } else { if (line.length() > 0) line.append(" "); line.append(word); }
         }
         if (line.length() > 0) g2.drawString(line.toString(), x, y);
     }
@@ -292,37 +316,29 @@ public class CharacterSelectionScreen extends JPanel {
             case "Fighter":  return COLOR_FIGHTER;
             case "Tank":     return COLOR_TANK;
             case "Support":  return COLOR_SUPPORT;
-            default:         return Color.WHITE;
+            default:         return Color.GRAY;
         }
     }
 
-    private void drawArrow(Graphics2D g2, BufferedImage img,
-                           Rectangle rect, boolean hover, String fallback) {
+    private void drawArrow(Graphics2D g2, BufferedImage img, Rectangle rect, boolean hover, String fb) {
         if (img != null) {
-            float alpha = hover ? 1.0f : 0.75f;
-            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
-            int offset = hover ? -2 : 0;
-            g2.drawImage(img, rect.x + offset, rect.y + offset,
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, hover ? 1.0f : 0.80f));
+            g2.drawImage(img, rect.x + (hover ? -2 : 0), rect.y + (hover ? -2 : 0),
                     rect.width, rect.height, null);
             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
         } else {
-            g2.setColor(hover ? new Color(255, 200, 80) : new Color(180, 140, 50));
-            g2.fillRoundRect(rect.x, rect.y, rect.width, rect.height, 12, 12);
-            g2.setFont(new Font("Arial", Font.BOLD, 28));
-            g2.setColor(Color.WHITE);
-            FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(fallback,
-                    rect.x + (rect.width  - fm.stringWidth(fallback)) / 2,
-                    rect.y + (rect.height + fm.getAscent() - fm.getDescent()) / 2);
+            g2.setColor(hover ? new Color(255, 90, 90) : new Color(200, 55, 55));
+            int[] px, py;
+            if ("<".equals(fb)) { px = new int[]{rect.x+rect.width,rect.x,rect.x+rect.width}; py = new int[]{rect.y,rect.y+rect.height/2,rect.y+rect.height}; }
+            else                { px = new int[]{rect.x,rect.x+rect.width,rect.x};            py = new int[]{rect.y,rect.y+rect.height/2,rect.y+rect.height}; }
+            g2.fillPolygon(px, py, 3);
         }
     }
 
-    private void drawButton(Graphics2D g2, BufferedImage img,
-                            Rectangle rect, boolean hover, String label) {
+    private void drawButton(Graphics2D g2, BufferedImage img, Rectangle rect, boolean hover, String label) {
         Rectangle r = hover ? expandRect(rect, 3) : rect;
         if (img != null) {
-            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
-                    hover ? 1.0f : 0.85f));
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, hover ? 1.0f : 0.88f));
             g2.drawImage(img, r.x, r.y, r.width, r.height, null);
             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
         } else {
@@ -331,12 +347,12 @@ public class CharacterSelectionScreen extends JPanel {
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 16));
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(label,
-                    r.x + (r.width  - fm.stringWidth(label)) / 2,
+            g2.drawString(label, r.x + (r.width - fm.stringWidth(label)) / 2,
                     r.y + (r.height + fm.getAscent() - fm.getDescent()) / 2);
         }
     }
 
+    // ── Mouse listeners ───────────────────────────────────────────────────────
     private void addMouseListeners() {
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
@@ -345,12 +361,9 @@ public class CharacterSelectionScreen extends JPanel {
                 hoverRight   = arrowRightRect.contains(e.getPoint());
                 hoverConfirm = confirmRect.contains(e.getPoint());
                 hoverBack    = backRect.contains(e.getPoint());
-
-                if (hoverLeft || hoverRight || hoverConfirm || hoverBack) {
-                    setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                } else {
-                    setCursor(Cursor.getDefaultCursor());
-                }
+                setCursor((hoverLeft || hoverRight || hoverConfirm || hoverBack)
+                        ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                        : Cursor.getDefaultCursor());
                 repaint();
             }
         });
@@ -373,30 +386,46 @@ public class CharacterSelectionScreen extends JPanel {
         });
     }
 
+    // ── Confirm logic ─────────────────────────────────────────────────────────
     private void onConfirmClicked() {
-        if (!p1Done) {
-            p1Choice     = currentIndex;
-            p1Done       = true;
-            currentIndex = (p1Choice + 1) % CHARACTERS.length;
-            System.out.println("P1 chose: " + CHARACTERS[p1Choice][0]);
+        // ── ARCADE: single-pick → hand off to ArcadeManager with player name ──
+        if ("ARCADE".equals(gameMode)) {
+            int chosenIndex = currentIndex;
+            // Pass playerName so ArcadeManager can record it for the leaderboard
+            ArcadeManager manager = new ArcadeManager(gameWindow, chosenIndex, arcadePlayerName);
+            manager.startNext();
+            return;
+        }
+
+        // ── PVP / PVC: original two-player selection (unchanged) ──────────────
+        if (currentPlayer == 1) {
+            p1Choice      = currentIndex;
+            currentPlayer = 2;
+            currentIndex  = (p1Choice + 1) % CHARACTERS.length;
             repaint();
         } else {
-            if (currentIndex == p1Choice) {
-                System.out.println("Already taken by P1! Pick another.");
-                return;
-            }
+            if (currentIndex == p1Choice) return; // same character — silent block
             int p2Choice = currentIndex;
-            System.out.println("P2 chose: " + CHARACTERS[p2Choice][0]);
-            System.out.println("Both ready! Starting game...");
-            // TODO: gameWindow.switchScreen(new GameScreen(gameWindow, p1Choice, p2Choice));
+            String p1Label = "PVP".equals(gameMode) ? "Player 1" : "Player";
+            String p2Label = "PVP".equals(gameMode) ? "Player 2" : "Computer";
+            gameWindow.switchScreen(
+                    new VersusScreen(gameWindow, p1Choice, p2Choice, gameMode, p1Label, p2Label));
         }
     }
 
+    // ── Back logic ────────────────────────────────────────────────────────────
     private void onBackClicked() {
-        if (p1Done) {
-            p1Done       = false;
-            p1Choice     = -1;
-            currentIndex = 0;
+        // ── ARCADE back → return to name entry ────────────────────────────────
+        if ("ARCADE".equals(gameMode)) {
+            gameWindow.switchScreen(new ArcadeNameEntryScreen(gameWindow));
+            return;
+        }
+
+        // ── PVP / PVC back: original logic (unchanged) ────────────────────────
+        if (currentPlayer == 2) {
+            currentPlayer = 1;
+            currentIndex  = p1Choice;
+            p1Choice      = -1;
             repaint();
         } else {
             gameWindow.switchScreen(new GameModeScreen(gameWindow));
