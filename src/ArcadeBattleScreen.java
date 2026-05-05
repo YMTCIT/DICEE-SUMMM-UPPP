@@ -88,6 +88,12 @@ public class ArcadeBattleScreen extends JPanel {
     private boolean gameOver       = false;
     private boolean playerWon      = false;
 
+    // ── BUG FIX: global action lock ───────────────────────────────────────────
+    // Set to true the moment any action starts processing; cleared only when
+    // the full roll-animation-resolve cycle completes. This prevents multiple
+    // clicks from triggering additional attacks while one is mid-flight.
+    private boolean actionLocked   = false;
+
     // ── Dice ──────────────────────────────────────────────────────────────────
     private int     die1Val = 0, die2Val = 0;
     private boolean showDice   = false;
@@ -134,11 +140,9 @@ public class ArcadeBattleScreen extends JPanel {
         this.isMiniFinal   = isMiniFinal;
         this.isFinalBoss   = isFinalBoss;
 
-        // Player HP carried over from manager
         playerMaxHp = arcadeManager.getPlayerMaxHp();
         playerHp    = arcadeManager.getPlayerHp();
 
-        // Boss HP
         bossMaxHp = Integer.parseInt(bossData[2]);
         bossHp    = bossMaxHp;
 
@@ -158,19 +162,16 @@ public class ArcadeBattleScreen extends JPanel {
         btnWildcardImg = loadImg(BTN_WILDCARD_PATH);
         p1LabelImg     = loadImg("assets/ui/player_1.png");
 
-        String[] hpPaths = {HP_0_PATH,HP_20_PATH,HP_40_PATH,
-                HP_60_PATH,HP_80_PATH,HP_100_PATH};
-        for (int i = 0; i < 6; i++) hpBars[i]     = loadImg(hpPaths[i]);
-        for (int i = 0; i < 6; i++) diceImages[i]  = loadImg("assets/dice/dice_"+(i+1)+".png");
+        String[] hpPaths = {HP_0_PATH,HP_20_PATH,HP_40_PATH,HP_60_PATH,HP_80_PATH,HP_100_PATH};
+        for (int i = 0; i < 6; i++) hpBars[i]    = loadImg(hpPaths[i]);
+        for (int i = 0; i < 6; i++) diceImages[i] = loadImg("assets/dice/dice_"+(i+1)+".png");
 
-        // Player sprite (animated gif)
         File pf = new File(PLAYER_SPRITE_FILES[playerIndex]);
         if (pf.exists()) {
             playerSprite = new ImageIcon(PLAYER_SPRITE_FILES[playerIndex]);
             playerSprite.setImageObserver(this);
         }
 
-        // Boss sprite (animated gif)
         String bossGif = bossData[5];
         File bf = new File(bossGif);
         if (bf.exists()) {
@@ -191,8 +192,7 @@ public class ArcadeBattleScreen extends JPanel {
         currentTurn = (r1 >= r2) ? 1 : 2;
         addLog(CHARACTERS[playerIndex][0] + " rolled " + r1 +
                 ", " + bossData[0] + " rolled " + r2 + ".");
-        addLog((currentTurn == 1 ? CHARACTERS[playerIndex][0]
-                : bossData[0]) + " goes first!");
+        addLog((currentTurn == 1 ? CHARACTERS[playerIndex][0] : bossData[0]) + " goes first!");
         if (currentTurn == 2) {
             Timer t = new Timer(1200, e -> { doBossTurn(); repaint(); });
             t.setRepeats(false); t.start();
@@ -250,24 +250,18 @@ public class ArcadeBattleScreen extends JPanel {
 
         int w = getWidth(), h = getHeight();
 
-        // Background
         if (bgImage != null) g2.drawImage(bgImage, 0, 0, w, h, null);
         else { g2.setColor(new Color(40,20,10)); g2.fillRect(0,0,w,h); }
 
-        // Boss label badge (top center)
         drawBossBadge(g2, w);
-
-        // Round badge
         drawRoundBadge(g2, w);
 
-        // Health bars
         drawHealthBar(g2, playerHp, playerMaxHp, 30, 20, false,
                 CHARACTERS[playerIndex][0], p1LabelImg);
         drawHealthBar(g2, bossHp, bossMaxHp, w - 30 - HP_BAR_W, 20, true,
                 bossData[0], null);
 
-        // Sprites
-        int panelY  = h - PANEL_H;
+        int panelY = h - PANEL_H;
         int p1X = (int)(w * 0.08) + (shakingPlayer == 1 ? shakeOffsetX : 0);
         int p1Y = panelY - SPRITE_H   + (shakingPlayer == 1 ? shakeOffsetY : 0);
         int p2X = (int)(w * 0.78)     + (shakingPlayer == 2 ? shakeOffsetX : 0);
@@ -276,16 +270,13 @@ public class ArcadeBattleScreen extends JPanel {
         drawSpriteIcon(g2, playerSprite, p1X, p1Y, SPRITE_W, SPRITE_H, false, shakingPlayer == 1);
         drawSpriteIcon(g2, bossSprite,   p2X, p2Y, SPRITE_W, SPRITE_H, true,  shakingPlayer == 2);
 
-        // Turn arrow
         if (!gameOver) {
             int arrowX = (currentTurn == 1) ? p1X + SPRITE_W/2 : p2X + SPRITE_W/2;
             drawTurnArrow(g2, arrowX, panelY - SPRITE_H - 12);
         }
 
-        // Action panel
         drawActionPanel(g2, 0, panelY, w, h);
 
-        // Game over overlay
         if (gameOver) drawGameOverOverlay(g2, w, h);
     }
 
@@ -295,16 +286,12 @@ public class ArcadeBattleScreen extends JPanel {
                 isMiniFinal ? "★ MINI-FINAL BOSS" : "MINI BOSS " + (arcadeManager.getCurrentBossIndex() + 1) + "/5";
         Color bg = isFinalBoss ? new Color(180,0,0) :
                 isMiniFinal ? new Color(140,0,140) : new Color(60,60,180);
-
         g2.setFont(new Font("Arial", Font.BOLD, 14));
         FontMetrics fm = g2.getFontMetrics();
         int bw = fm.stringWidth(label) + 30, bh = 26;
         int bx = (w - bw) / 2, by = 44;
-
-        g2.setColor(bg);
-        g2.fillRoundRect(bx, by, bw, bh, 10, 10);
-        g2.setColor(Color.WHITE);
-        g2.drawString(label, bx + 15, by + bh - 7);
+        g2.setColor(bg); g2.fillRoundRect(bx, by, bw, bh, 10, 10);
+        g2.setColor(Color.WHITE); g2.drawString(label, bx + 15, by + bh - 7);
     }
 
     // ── Round badge ───────────────────────────────────────────────────────────
@@ -314,13 +301,10 @@ public class ArcadeBattleScreen extends JPanel {
         FontMetrics fm = g2.getFontMetrics();
         int bw = fm.stringWidth(txt) + 30, bh = 28;
         int bx = (w - bw) / 2, by = 10;
-        g2.setColor(new Color(240,235,210));
-        g2.fillRoundRect(bx, by, bw, bh, 12, 12);
-        g2.setColor(new Color(80,60,30));
-        g2.setStroke(new BasicStroke(2));
+        g2.setColor(new Color(240,235,210)); g2.fillRoundRect(bx, by, bw, bh, 12, 12);
+        g2.setColor(new Color(80,60,30)); g2.setStroke(new BasicStroke(2));
         g2.drawRoundRect(bx, by, bw, bh, 12, 12);
-        g2.setColor(new Color(60,40,20));
-        g2.drawString(txt, bx + 15, by + bh - 8);
+        g2.setColor(new Color(60,40,20)); g2.drawString(txt, bx + 15, by + bh - 8);
     }
 
     // ── Health bar ────────────────────────────────────────────────────────────
@@ -330,7 +314,6 @@ public class ArcadeBattleScreen extends JPanel {
         double pct = (double) hp / maxHp;
         BufferedImage bar = getHpBarImage(pct);
         int labelW = 60, labelH = 25;
-
         if (bar != null) {
             if (flip) g2.drawImage(bar, x+HP_BAR_W, y, -HP_BAR_W, HP_BAR_H, null);
             else      g2.drawImage(bar, x, y, HP_BAR_W, HP_BAR_H, null);
@@ -341,22 +324,15 @@ public class ArcadeBattleScreen extends JPanel {
             g2.setColor(bc);
             g2.fillRoundRect(x+2, y+2, (int)((HP_BAR_W-4)*pct), HP_BAR_H-4, 8, 8);
         }
-
-        g2.setFont(new Font("Arial", Font.BOLD, 13));
-        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Arial", Font.BOLD, 13)); g2.setColor(Color.WHITE);
         String hpTxt = hp + " / " + maxHp;
         FontMetrics fm = g2.getFontMetrics();
         g2.drawString(hpTxt, x+(HP_BAR_W-fm.stringWidth(hpTxt))/2, y+HP_BAR_H+16);
-
-        g2.setFont(new Font("Arial", Font.BOLD, 14));
-        g2.setColor(new Color(255,220,100));
+        g2.setFont(new Font("Arial", Font.BOLD, 14)); g2.setColor(new Color(255,220,100));
         FontMetrics fm2 = g2.getFontMetrics();
-        g2.drawString(name.toUpperCase(),
-                x+(HP_BAR_W-fm2.stringWidth(name.toUpperCase()))/2, y+HP_BAR_H+34);
-
-        if (labelImg != null) {
+        g2.drawString(name.toUpperCase(), x+(HP_BAR_W-fm2.stringWidth(name.toUpperCase()))/2, y+HP_BAR_H+34);
+        if (labelImg != null)
             g2.drawImage(labelImg, x+(HP_BAR_W-labelW)/2, y+HP_BAR_H+40, labelW, labelH, null);
-        }
     }
 
     private BufferedImage getHpBarImage(double pct) {
@@ -380,14 +356,12 @@ public class ArcadeBattleScreen extends JPanel {
             Image img = icon.getImage();
             if (flipX) g2.drawImage(img, x+w, y, -w, h, this);
             else       g2.drawImage(img, x,   y,  w, h, this);
-
             if (isHit && spriteFlashAlpha > 0) {
                 BufferedImage flash = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D fg = flash.createGraphics();
                 if (flipX) fg.drawImage(img, w, 0, -w, h, null);
                 else       fg.drawImage(img, 0, 0,  w, h, null);
-                fg.setComposite(AlphaComposite.getInstance(
-                        AlphaComposite.SRC_ATOP, spriteFlashAlpha/255f));
+                fg.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, spriteFlashAlpha/255f));
                 fg.setColor(isDefendFlash ? new Color(80,160,255) : Color.WHITE);
                 fg.fillRect(0, 0, w, h); fg.dispose();
                 g2.drawImage(flash, x, y, null);
@@ -395,8 +369,7 @@ public class ArcadeBattleScreen extends JPanel {
         } else {
             g2.setColor(flipX ? new Color(220,80,80) : new Color(80,140,255));
             g2.fillRoundRect(x+40, y, 80, 120, 10, 10);
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, 12));
+            g2.setColor(Color.WHITE); g2.setFont(new Font("Arial", Font.BOLD, 12));
             g2.drawString("?", x+74, y+65);
         }
     }
@@ -404,10 +377,9 @@ public class ArcadeBattleScreen extends JPanel {
     // ── Dice ──────────────────────────────────────────────────────────────────
     private void drawDice(Graphics2D g2, int x, int y) {
         int s = 55;
-        drawSingleDie(g2, x,   y, die1Val, s);
+        drawSingleDie(g2, x,     y, die1Val, s);
         drawSingleDie(g2, x+s+8, y, die2Val, s);
-        g2.setFont(new Font("Arial", Font.BOLD, 14));
-        g2.setColor(new Color(60,40,10));
+        g2.setFont(new Font("Arial", Font.BOLD, 14)); g2.setColor(new Color(60,40,10));
         g2.drawString("= "+(die1Val+die2Val), x+s*2+16, y+22);
         g2.setColor(new Color(160,60,0));
         g2.drawString("DMG: "+lastDamage, x+s*2+16, y+42);
@@ -421,7 +393,7 @@ public class ArcadeBattleScreen extends JPanel {
         g2.setColor(new Color(80,80,80)); g2.setStroke(new BasicStroke(1.5f));
         g2.drawRoundRect(x,y,s,s,8,8);
         g2.setColor(new Color(30,30,30));
-        int m=s/2,q=s/4, ds=Math.max(4,s/8);
+        int m=s/2,q=s/4,ds=Math.max(4,s/8);
         int[][] dots = getDots(val,x,y,m,q);
         for (int[] d : dots) g2.fillOval(d[0],d[1],ds,ds);
     }
@@ -440,27 +412,28 @@ public class ArcadeBattleScreen extends JPanel {
 
     // ── Action panel ──────────────────────────────────────────────────────────
     private void drawActionPanel(Graphics2D g2, int px, int py, int w, int h) {
-        // Panel background
-        g2.setColor(new Color(210,185,140));
-        g2.fillRect(px, py, w, PANEL_H);
-        g2.setColor(new Color(160,130,90));
-        g2.setStroke(new BasicStroke(3));
+        g2.setColor(new Color(210,185,140)); g2.fillRect(px, py, w, PANEL_H);
+        g2.setColor(new Color(160,130,90)); g2.setStroke(new BasicStroke(3));
         g2.drawRect(px, py, w, PANEL_H);
 
-        // Buttons
         int btnW=180, btnH=55;
         int centerX = w/2-btnW-10;
         int row1=py+20, row2=py+85;
-        attackRect.setBounds(centerX,           row1,btnW,btnH);
-        specialRect.setBounds(centerX+btnW+20,  row1,btnW,btnH);
-        defendRect.setBounds(centerX,            row2,btnW,btnH);
-        wildRect.setBounds(centerX+btnW+20,      row2,btnW,btnH);
+        attackRect.setBounds(centerX,          row1,btnW,btnH);
+        specialRect.setBounds(centerX+btnW+20, row1,btnW,btnH);
+        defendRect.setBounds(centerX,           row2,btnW,btnH);
+        wildRect.setBounds(centerX+btnW+20,     row2,btnW,btnH);
 
         boolean canSpecial = playerSkillCd == 0;
         boolean canDefend  = playerDefendCd == 0;
         boolean hasWild    = playerWildcard != null;
 
-        if (!gameOver && currentTurn==1 && !waitingForRoll) {
+        // BUG FIX: buttons are only active when NO action is in flight
+        // actionLocked covers the entire attack-roll-resolve pipeline
+        boolean buttonsActive = !gameOver && currentTurn==1
+                && !waitingForRoll && !actionLocked && !showDice;
+
+        if (buttonsActive) {
             drawBtn(g2,attackRect, hoverAttack, "▶  ATTACK",true);
             drawBtn(g2,specialRect,hoverSpecial,"SPECIAL",  canSpecial);
             drawBtn(g2,defendRect, hoverDefend, "DEFEND",   canDefend);
@@ -472,55 +445,46 @@ public class ArcadeBattleScreen extends JPanel {
             drawBtn(g2,wildRect,   false,"WILDCARD", false);
         }
 
-        // Right info panel
-        int rightX       = w*2/3+20;
-        int rightW       = w/3-40;
-        int rightCenterX = rightX+rightW/2;
+        int rightX = w*2/3+20, rightW = w/3-40, rightCenterX = rightX+rightW/2;
 
         if (!logLine2.isEmpty()) {
-            g2.setFont(new Font("Arial",Font.PLAIN,12));
-            g2.setColor(new Color(100,60,20));
+            g2.setFont(new Font("Arial",Font.PLAIN,12)); g2.setColor(new Color(100,60,20));
             FontMetrics fl2=g2.getFontMetrics();
             g2.drawString(logLine2, rightCenterX-fl2.stringWidth(logLine2)/2, py+22);
         }
         if (!logLine3.isEmpty()) {
-            g2.setFont(new Font("Arial",Font.BOLD,12));
-            g2.setColor(new Color(80,40,0));
+            g2.setFont(new Font("Arial",Font.BOLD,12)); g2.setColor(new Color(80,40,0));
             FontMetrics fl3=g2.getFontMetrics();
             g2.drawString(logLine3, rightCenterX-fl3.stringWidth(logLine3)/2, py+40);
         }
 
-        g2.setColor(new Color(160,120,70,120));
-        g2.setStroke(new BasicStroke(1));
+        g2.setColor(new Color(160,120,70,120)); g2.setStroke(new BasicStroke(1));
         g2.drawLine(rightX,py+50,rightX+rightW,py+50);
 
-        String sub = waitingForRoll ? "CLICK TO ROLL!" :
+        String sub = actionLocked || waitingForRoll ? "CLICK TO ROLL!" :
                 currentTurn==2 ? "BOSS THINKING..." : "";
         if (!sub.isEmpty()) {
-            g2.setFont(new Font("Arial",Font.BOLD,14));
-            g2.setColor(new Color(120,70,10));
+            // While action is locked, show "RESOLVING..." instead of "CLICK TO ROLL!"
+            if (actionLocked && !waitingForRoll) sub = "RESOLVING...";
+            g2.setFont(new Font("Arial",Font.BOLD,14)); g2.setColor(new Color(120,70,10));
             FontMetrics fs=g2.getFontMetrics();
             g2.drawString(sub, rightCenterX-fs.stringWidth(sub)/2, py+68);
         }
 
-        g2.setFont(new Font("Arial",Font.PLAIN,12));
-        g2.setColor(new Color(100,60,20));
+        g2.setFont(new Font("Arial",Font.PLAIN,12)); g2.setColor(new Color(100,60,20));
         String cdS = "Special CD: "+(playerSkillCd>0?playerSkillCd:"Ready");
         String cdD = "Defend CD:  "+(playerDefendCd>0?playerDefendCd:"Ready");
         FontMetrics fc=g2.getFontMetrics();
         g2.drawString(cdS, rightCenterX-fc.stringWidth(cdS)/2, py+85);
         g2.drawString(cdD, rightCenterX-fc.stringWidth(cdD)/2, py+102);
 
-        // Coins display
-        g2.setFont(new Font("Arial",Font.BOLD,13));
-        g2.setColor(new Color(180,140,0));
+        g2.setFont(new Font("Arial",Font.BOLD,13)); g2.setColor(new Color(180,140,0));
         String coinTxt = "Coins: "+arcadeManager.getCoins();
         FontMetrics fco=g2.getFontMetrics();
         g2.drawString(coinTxt, rightCenterX-fco.stringWidth(coinTxt)/2, py+122);
 
         if (playerWildcard!=null) {
-            g2.setFont(new Font("Arial",Font.BOLD,12));
-            g2.setColor(new Color(140,0,180));
+            g2.setFont(new Font("Arial",Font.BOLD,12)); g2.setColor(new Color(140,0,180));
             String wt="WILDCARD: "+playerWildcard;
             FontMetrics fw=g2.getFontMetrics();
             g2.drawString(wt, rightCenterX-fw.stringWidth(wt)/2, py+140);
@@ -530,8 +494,7 @@ public class ArcadeBattleScreen extends JPanel {
     }
 
     // ── Draw button ───────────────────────────────────────────────────────────
-    private void drawBtn(Graphics2D g2, Rectangle r,
-                         boolean hover, String label, boolean enabled) {
+    private void drawBtn(Graphics2D g2, Rectangle r, boolean hover, String label, boolean enabled) {
         BufferedImage img = null;
         switch(label) {
             case "▶  ATTACK": img=btnAttackImg;   break;
@@ -552,9 +515,8 @@ public class ArcadeBattleScreen extends JPanel {
             g2.drawString(label,r.x+(r.width-fm.stringWidth(label))/2,
                     r.y+(r.height+fm.getAscent()-fm.getDescent())/2);
         }
-        if (hover&&enabled&&arrowImg!=null) {
+        if (hover&&enabled&&arrowImg!=null)
             g2.drawImage(arrowImg,r.x-2,r.y+(r.height-25)/2,25,25,null);
-        }
     }
 
     // ── Game over overlay ─────────────────────────────────────────────────────
@@ -565,8 +527,7 @@ public class ArcadeBattleScreen extends JPanel {
         String title=playerWon?CHARACTERS[playerIndex][0]+" WINS!":"DEFEATED!";
         FontMetrics fm=g2.getFontMetrics();
         g2.drawString(title,(w-fm.stringWidth(title))/2,h/2-20);
-        g2.setFont(new Font("Arial",Font.PLAIN,18));
-        g2.setColor(new Color(200,200,200));
+        g2.setFont(new Font("Arial",Font.PLAIN,18)); g2.setColor(new Color(200,200,200));
         String sub=playerWon?"Heading to shop...":"Returning to menu...";
         FontMetrics fm2=g2.getFontMetrics();
         g2.drawString(sub,(w-fm2.stringWidth(sub))/2,h/2+30);
@@ -579,29 +540,50 @@ public class ArcadeBattleScreen extends JPanel {
 
     // ── Action chosen ─────────────────────────────────────────────────────────
     private void onActionChosen(String action) {
+        // BUG FIX: hard lock — if we're already processing any action, ignore
+        if (actionLocked) return;
+
         String pName = CHARACTERS[playerIndex][0];
         String bName = bossData[0];
         switch(action) {
             case "ATTACK":
+                actionLocked = true;   // lock immediately on first click
+                waitingForRoll = true;
                 addLog(pName+" winds up for an attack!");
-                waitingForRoll=true; repaint(); break;
+                repaint();
+                break;
             case "SPECIAL":
                 if (playerSkillCd>0){addLog("Special on cooldown!");return;}
-                doPlayerSpecial(pName,bName); endTurn(); break;
+                actionLocked = true;
+                doPlayerSpecial(pName,bName);
+                endTurn();
+                break;
             case "DEFEND":
                 if (playerDefendCd>0){addLog("Defend on cooldown!");return;}
+                actionLocked = true;
                 playerDefending=true; playerDefendCd=3;
                 addLog(pName+" takes a defensive stance!");
-                startDefendAnimation(1); endTurn(); break;
+                startDefendAnimation(1);
+                endTurn();
+                break;
             case "WILDCARD":
                 if (playerWildcard==null){addLog("No wildcard!");return;}
-                doWildcard(pName,bName); playerWildcard=null; endTurn(); break;
+                actionLocked = true;
+                doWildcard(pName,bName);
+                playerWildcard=null;
+                endTurn();
+                break;
         }
     }
 
     // ── Player roll ───────────────────────────────────────────────────────────
     private void doRollAndAttack() {
-        waitingForRoll=false;
+        // BUG FIX: drop any extra clicks that arrived before we cleared waitingForRoll
+        if (!waitingForRoll) return;
+
+        waitingForRoll = false;
+        // actionLocked is already true (set when "ATTACK" was chosen)
+
         String pName=CHARACTERS[playerIndex][0];
         String bName=bossData[0];
 
@@ -629,8 +611,13 @@ public class ArcadeBattleScreen extends JPanel {
             }
             repaint();
             Timer hide=new Timer(2000,e2->{
-                showDice=false; checkGameOver();
-                if (!gameOver) endTurn(); repaint();
+                showDice=false;
+                checkGameOver();
+                if (!gameOver) {
+                    actionLocked = false;  // BUG FIX: only unlock when fully resolved
+                    endTurn();
+                }
+                repaint();
             });
             hide.setRepeats(false); hide.start();
         });
@@ -643,7 +630,13 @@ public class ArcadeBattleScreen extends JPanel {
         String charName=CHARACTERS[playerIndex][0];
         switch(charName) {
             case "Echo":   addLog(pName+" uses Phantom Dance! Dodges next 2!"); break;
-            case "Zyah":   addLog(pName+" uses Dancehall Fever! Extra turn!"); doRollAndAttack(); return;
+            case "Zyah":
+                addLog(pName+" uses Dancehall Fever! Extra turn!");
+                // Extra turn: reset lock, set waitingForRoll so player clicks to roll
+                actionLocked = false;
+                waitingForRoll = true;
+                repaint();
+                return;
             case "Raze":
                 die1Val=rand.nextInt(6)+1; die2Val=rand.nextInt(6)+1;
                 int dmg=(int)((die1Val+die2Val)*Double.parseDouble(CHARACTERS[playerIndex][3]))+8;
@@ -664,12 +657,21 @@ public class ArcadeBattleScreen extends JPanel {
     // ── Wildcard ──────────────────────────────────────────────────────────────
     private void doWildcard(String pName, String bName) {
         switch(playerWildcard) {
-            case "FREEZE":      bossStunned=true; bossStunTurns=1; startHitAnimation(2);
+            case "FREEZE":
+                bossStunned=true; bossStunTurns=1; startHitAnimation(2);
                 addLog(pName+" used FREEZE! "+bName+" loses next turn!"); break;
-            case "DOUBLE ROLL": addLog(pName+" used DOUBLE ROLL!"); waitingForRoll=true; break;
-            case "HEAL":        playerHp=Math.min(playerMaxHp,playerHp+20);
+            case "DOUBLE ROLL":
+                addLog(pName+" used DOUBLE ROLL!");
+                // Similar to Zyah extra turn — let player click to roll
+                actionLocked = false;
+                waitingForRoll = true;
+                repaint();
+                return;
+            case "HEAL":
+                playerHp=Math.min(playerMaxHp,playerHp+20);
                 addLog(pName+" used HEAL! +20 HP!"); break;
-            case "SHIELD":      playerDefending=true;
+            case "SHIELD":
+                playerDefending=true;
                 addLog(pName+" used SHIELD! Next hit -50%!"); break;
         }
     }
@@ -693,12 +695,13 @@ public class ArcadeBattleScreen extends JPanel {
 
     // ── Boss special ──────────────────────────────────────────────────────────
     private void doBossSpecial(String bName, String pName) {
-        // Boss special based on class
         String cls=bossData[1];
         switch(cls) {
-            case "Support":  bossHp=Math.min(bossMaxHp,bossHp+20);
+            case "Support":
+                bossHp=Math.min(bossMaxHp,bossHp+20);
                 addLog(bName+" uses Healing Aura! +20 HP!"); break;
-            case "Assassin": bossStunned=false;
+            case "Assassin":
+                bossStunned=false;
                 addLog(bName+" uses Shadow Strike! Dodges next!"); break;
             case "Fighter":
                 die1Val=rand.nextInt(6)+1; die2Val=rand.nextInt(6)+1;
@@ -706,10 +709,10 @@ public class ArcadeBattleScreen extends JPanel {
                 lastDamage=dmg; showDice=true;
                 playerHp=Math.max(0,playerHp-dmg); startHitAnimation(1);
                 addLog(bName+" uses Flame Burst! +"+dmg+" dmg!"); break;
-            case "Tank":     playerStunned=true; playerStunTurns=2; startHitAnimation(1);
+            case "Tank":
+                playerStunned=true; playerStunTurns=2; startHitAnimation(1);
                 addLog(bName+" uses Ground Slam! "+pName+" stunned!"); break;
             case "Master":
-                // Final boss special
                 die1Val=rand.nextInt(6)+1; die2Val=rand.nextInt(6)+1;
                 int fdmg=(int)((die1Val+die2Val)*Double.parseDouble(bossData[3]))+5;
                 lastDamage=fdmg;
@@ -762,6 +765,10 @@ public class ArcadeBattleScreen extends JPanel {
         if (currentTurn==1&&playerStunned){addLog(CHARACTERS[playerIndex][0]+" is stunned!"); currentTurn=2;}
         else if (currentTurn==2&&bossStunned){addLog(bossData[0]+" is stunned!"); currentTurn=1;}
 
+        // BUG FIX: unlock action when it becomes the player's turn again
+        // (the boss turn manages its own async flow and doesn't need the lock)
+        if (currentTurn == 1) actionLocked = false;
+
         repaint();
         if (!gameOver&&currentTurn==2) {
             Timer t=new Timer(1200,e->{doBossTurn();repaint();});
@@ -771,9 +778,13 @@ public class ArcadeBattleScreen extends JPanel {
 
     // ── Check game over ───────────────────────────────────────────────────────
     private void checkGameOver() {
+        // BUG FIX: guard against re-entrant calls caused by multi-click spam
+        if (gameOver) return;
+
         if (playerHp<=0||bossHp<=0) {
             gameOver=true;
             playerWon=(bossHp<=0);
+            actionLocked=true; // keep buttons dead permanently after game ends
             addLog(playerWon?CHARACTERS[playerIndex][0]+" wins!":bossData[0]+" wins!");
             arcadeManager.setPlayerHp(playerHp);
             repaint();
@@ -799,11 +810,21 @@ public class ArcadeBattleScreen extends JPanel {
                 repaint();
             }
         });
+
         addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
-                if (gameOver) return;
-                if (waitingForRoll){doRollAndAttack();return;}
+                // BUG FIX: primary gate — reject ALL clicks while locked or game is over
+                if (gameOver)      return;
+                if (actionLocked && !waitingForRoll) return;
+
+                // "CLICK TO ROLL!" phase: accept exactly one click, then lock again
+                if (waitingForRoll) {
+                    doRollAndAttack();
+                    return;
+                }
+
                 if (currentTurn!=1) return;
+
                 if      (attackRect.contains(e.getPoint()))  onActionChosen("ATTACK");
                 else if (specialRect.contains(e.getPoint())) onActionChosen("SPECIAL");
                 else if (defendRect.contains(e.getPoint()))  onActionChosen("DEFEND");
