@@ -61,7 +61,7 @@ public class BattleScreen extends JPanel {
     // ── In-place action animation timing ─────────────────────────────────────
     private static final int ANIM_ATTACK_MS   = 900;
     private static final int ANIM_DEFEND_MS   = 900;
-    private static final int ANIM_ULT_MS      = 1200; // SPECIAL button uses *_ult.gif
+    private static final int ANIM_ULT_MS      = 1200;
     private static final int ANIM_WILDCARD_MS = 1000;
 
     // ── Hit Shake Animation ───────────────────────────────────────────────────
@@ -107,6 +107,12 @@ public class BattleScreen extends JPanel {
     private boolean gameOver = false;
     private String winner = "";
 
+    // ── BUG FIX: global action lock ──────────────────────────────────────────
+    // Set to true the moment any action starts; cleared when the full
+    // roll-animation-resolve cycle completes or the turn switches back
+    // to a human player. Prevents multi-click spam.
+    private boolean actionLocked = false;
+
     // ── Dice state ────────────────────────────────────────────────────────────
     private int die1Val = 0, die2Val = 0;
     private boolean showDice = false;
@@ -150,7 +156,7 @@ public class BattleScreen extends JPanel {
     // ── Animation action keys ─────────────────────────────────────────────────
     private static final String ANIM_ATTACK   = "attack";
     private static final String ANIM_DEFEND   = "defend";
-    private static final String ANIM_SPECIAL  = "ult";       // SPECIAL button -> *_ult.gif
+    private static final String ANIM_SPECIAL  = "ult";
     private static final String ANIM_WILDCARD = "wildcard";
 
     public BattleScreen(GameWindow gameWindow, int p1Index, int p2Index, String gameMode) {
@@ -254,23 +260,20 @@ public class BattleScreen extends JPanel {
     private ImageIcon freshGif(String path) {
         if (path == null) return null;
 
-        // Load as ImageIcon so the GIF animates properly
         ImageIcon icon = new ImageIcon(path);
         icon.setImageObserver(this);
 
-        // Make black pixels transparent using a filter
         Image filtered = Toolkit.getDefaultToolkit().createImage(
                 new FilteredImageSource(
                         icon.getImage().getSource(),
                         new RGBImageFilter() {
                             @Override
                             public int filterRGB(int x, int y, int rgb) {
-                                // Make near-black pixels transparent
                                 int r = (rgb >> 16) & 0xFF;
                                 int g = (rgb >> 8)  & 0xFF;
                                 int b =  rgb        & 0xFF;
                                 if (r < 30 && g < 30 && b < 30) {
-                                    return 0x00000000; // fully transparent
+                                    return 0x00000000;
                                 }
                                 return rgb;
                             }
@@ -282,6 +285,7 @@ public class BattleScreen extends JPanel {
         result.setImageObserver(this);
         return result;
     }
+
     private int getAnimDuration(String type) {
         switch (type) {
             case ANIM_ATTACK:   return ANIM_ATTACK_MS;
@@ -493,13 +497,8 @@ public class BattleScreen extends JPanel {
         if (icon != null) {
             Image img = icon.getImage();
 
-            int imgW = icon.getIconWidth();
-            int imgH = icon.getIconHeight();
-
-            // Scale up small GIFs to fill the sprite slot while keeping aspect ratio
-            imgW = w;
-            imgH = h;
-            // Bottom-center anchor — character feet stay on the ground line
+            int imgW = w;
+            int imgH = h;
             int drawX = x + (w - imgW) / 2;
             int drawY = y + (h - imgH);
 
@@ -509,7 +508,6 @@ public class BattleScreen extends JPanel {
                 g2.drawImage(img, drawX, drawY, imgW, imgH, this);
             }
 
-            // Flash overlay
             if (isHit && spriteFlashAlpha > 0) {
                 BufferedImage flash = new BufferedImage(imgW, imgH, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D fg = flash.createGraphics();
@@ -524,7 +522,6 @@ public class BattleScreen extends JPanel {
             }
 
         } else {
-            // Fallback placeholder box
             Color c = flipX ? new Color(220, 80, 80) : new Color(80, 140, 255);
             g2.setColor(c);
             g2.fillRoundRect(x + 40, y, 80, 120, 10, 10);
@@ -533,6 +530,7 @@ public class BattleScreen extends JPanel {
             g2.drawString("?", x + 74, y + 65);
         }
     }
+
     private void drawRoundBadge(Graphics2D g2, int w) {
         String roundText = "ROUND " + roundCount;
         g2.setFont(new Font("Arial", Font.BOLD, 16));
@@ -695,7 +693,11 @@ public class BattleScreen extends JPanel {
         boolean canDefend  = (currentTurn == 1) ? p1DefendCd == 0 : p2DefendCd == 0;
         boolean hasWild    = (currentTurn == 1) ? p1Wildcard != null : p2Wildcard != null;
 
-        boolean buttonsActive = !gameOver && isPlayerTurn && !waitingForRoll && !actionAnimationPlaying && !showDice;
+        // BUG FIX: actionLocked is included so buttons are greyed out during
+        // the entire attack-roll-resolve pipeline and during the computer turn.
+        boolean buttonsActive = !gameOver && isPlayerTurn
+                && !waitingForRoll && !actionAnimationPlaying
+                && !showDice && !actionLocked;
 
         if (buttonsActive) {
             drawActionBtn(g2, attackRect,  hoverAttack,  "▶  ATTACK", true);
@@ -739,8 +741,9 @@ public class BattleScreen extends JPanel {
             String subLabel = actionAnimationPlaying ? "ANIMATING..."
                     : waitingForRoll ? "CLICK TO ROLL!"
                       : showDice ? "RESOLVING..."
-                        : !isPlayerTurn ? "IS THINKING..."
-                          : "";
+                        : actionLocked ? "RESOLVING..."
+                          : !isPlayerTurn ? "IS THINKING..."
+                            : "";
 
             if (!subLabel.isEmpty()) {
                 g2.setFont(new Font("Arial", Font.BOLD, 14));
@@ -852,6 +855,8 @@ public class BattleScreen extends JPanel {
     }
 
     private void onActionChosen(String action) {
+        // BUG FIX: hard lock — reject all input while an action is mid-flight
+        if (actionLocked) return;
         if (actionAnimationPlaying || showDice) return;
 
         boolean isP1 = (currentTurn == 1);
@@ -861,6 +866,8 @@ public class BattleScreen extends JPanel {
 
         switch (action) {
             case "ATTACK":
+                // BUG FIX: lock immediately on first click
+                actionLocked = true;
                 playInPlaceAnimation(isP1, ANIM_ATTACK,
                         () -> doAttackLogic(attackerName));
                 break;
@@ -871,6 +878,7 @@ public class BattleScreen extends JPanel {
                     repaint();
                     return;
                 }
+                actionLocked = true;
                 playInPlaceAnimation(isP1, ANIM_SPECIAL,
                         () -> doSpecialLogic(isP1, attackerName, defenderName));
                 break;
@@ -881,6 +889,7 @@ public class BattleScreen extends JPanel {
                     repaint();
                     return;
                 }
+                actionLocked = true;
                 playInPlaceAnimation(isP1, ANIM_DEFEND,
                         () -> doDefendLogic(isP1, attackerName));
                 break;
@@ -892,6 +901,7 @@ public class BattleScreen extends JPanel {
                     repaint();
                     return;
                 }
+                actionLocked = true;
                 playInPlaceAnimation(isP1, ANIM_WILDCARD,
                         () -> doWildcardLogic(isP1, wc, attackerName, defenderName));
                 break;
@@ -919,18 +929,23 @@ public class BattleScreen extends JPanel {
 
     private void doSpecialLogic(boolean isP1, String attacker, String defender) {
         doSpecialSkill(isP1, attacker, defender);
-        endTurn();
+        // Zyah grants an extra turn via waitingForRoll — do not call endTurn in that case
+        if (!waitingForRoll) endTurn();
     }
 
     private void doWildcardLogic(boolean isP1, String wc, String attacker, String defender) {
         doWildcard(isP1, wc, attacker, defender);
         if (isP1) p1Wildcard = null;
         else      p2Wildcard = null;
-        endTurn();
+        // DOUBLE ROLL wildcard sets waitingForRoll — do not advance the turn
+        if (!waitingForRoll) endTurn();
     }
 
     private void doRollAndAttack() {
+        // BUG FIX: drop any extra clicks that arrived before we cleared waitingForRoll
+        if (!waitingForRoll) return;
         waitingForRoll = false;
+        // actionLocked remains true throughout the roll-resolve pipeline
 
         boolean isP1 = (currentTurn == 1);
         int attackerIdx = isP1 ? p1Index : p2Index;
@@ -942,7 +957,8 @@ public class BattleScreen extends JPanel {
         die2Val = rand.nextInt(6) + 1;
 
         int total = die1Val + die2Val;
-        double mult = Double.parseDouble(CHARACTERS[attackerIdx][3]);
+        // KhaiMode: read multiplier from GameSettings singleton
+        double mult = GameSettings.get().getMultiplier(attackerIdx);
         int damage = (int) (total * mult);
 
         boolean defending = isP1 ? p2Defending : p1Defending;
@@ -991,7 +1007,11 @@ public class BattleScreen extends JPanel {
             Timer hideTimer = new Timer(2000, e2 -> {
                 showDice = false;
                 checkGameOver();
-                if (!gameOver) endTurn();
+                if (!gameOver) {
+                    // BUG FIX: only unlock when the full pipeline is resolved
+                    actionLocked = false;
+                    endTurn();
+                }
                 repaint();
             });
             hideTimer.setRepeats(false);
@@ -1014,15 +1034,19 @@ public class BattleScreen extends JPanel {
                 break;
 
             case "Zyah":
+                // Extra turn: unlock and let the player click to roll
                 addLog(attacker + " uses Dancehall Fever! Extra turn granted!");
-                doRollAndAttack();
-                return;
+                actionLocked = false;
+                waitingForRoll = true;
+                repaint();
+                return; // doSpecialLogic checks waitingForRoll to skip endTurn
 
             case "Raze":
                 die1Val = rand.nextInt(6) + 1;
                 die2Val = rand.nextInt(6) + 1;
                 int total = die1Val + die2Val;
-                double mult = Double.parseDouble(CHARACTERS[idx][3]);
+                // KhaiMode: use GameSettings multiplier
+                double mult = GameSettings.get().getMultiplier(idx);
                 int dmg = (int) (total * mult) + 8;
                 lastDamage = dmg;
                 showDice = true;
@@ -1089,7 +1113,9 @@ public class BattleScreen extends JPanel {
                 break;
 
             case "DOUBLE ROLL":
-                addLog(attacker + " used DOUBLE ROLL! Rolling twice!");
+                // Extra roll: unlock and let the player click to roll
+                addLog(attacker + " used DOUBLE ROLL! Roll again!");
+                actionLocked = false;
                 waitingForRoll = true;
                 break;
 
@@ -1133,12 +1159,20 @@ public class BattleScreen extends JPanel {
         currentTurn = (currentTurn == 1) ? 2 : 1;
         if (currentTurn == 1) roundCount++;
 
+        // BUG FIX: unlock when it's a human player's turn
+        // PVP: both turns are human. PVC: only turn 1 is human.
+        if (currentTurn == 1 || (currentTurn == 2 && "PVP".equals(gameMode))) {
+            actionLocked = false;
+        }
+
         if (currentTurn == 1 && p1Stunned) {
             addLog(CHARACTERS[p1Index][0] + " is stunned and skips their turn!");
             currentTurn = 2;
+            actionLocked = false; // still unlock so rendering is correct
         } else if (currentTurn == 2 && p2Stunned) {
             addLog(CHARACTERS[p2Index][0] + " is stunned and skips their turn!");
             currentTurn = 1;
+            actionLocked = false;
         }
 
         repaint();
@@ -1183,11 +1217,13 @@ public class BattleScreen extends JPanel {
             });
         }
     }
+
     private void doComputerRoll() {
         die1Val = rand.nextInt(6) + 1;
         die2Val = rand.nextInt(6) + 1;
 
         int total = die1Val + die2Val;
+        // KhaiMode does NOT apply to the computer — use default multiplier from array
         double mult = Double.parseDouble(CHARACTERS[p2Index][3]);
         int damage = (int) (total * mult);
 
@@ -1229,9 +1265,12 @@ public class BattleScreen extends JPanel {
         showTimer.setRepeats(false);
         showTimer.start();
     }
+
     private void checkGameOver() {
         if (p1Hp <= 0 || p2Hp <= 0) {
             gameOver = true;
+            // BUG FIX: permanently lock buttons after game ends
+            actionLocked = true;
             winner = (p1Hp > 0) ? CHARACTERS[p1Index][0] : CHARACTERS[p2Index][0];
             addLog(winner + " wins the battle!");
             repaint();
@@ -1266,9 +1305,13 @@ public class BattleScreen extends JPanel {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (gameOver) return;
+                // BUG FIX: primary gate — reject all clicks while locked
+                // unless we are in the "click to roll" phase
+                if (actionLocked && !waitingForRoll) return;
                 if (actionAnimationPlaying) return;
                 if (showDice) return;
 
+                // "CLICK TO ROLL!" phase — accept exactly one click
                 if (waitingForRoll) {
                     doRollAndAttack();
                     return;

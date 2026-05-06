@@ -9,8 +9,8 @@ public class ArcadeManager {
             { "Adji",       "Support",  "125", "2.0", "Healing Aura – Heals 20 HP (CD: 3 turns)",         "assets/miniboss/adji_idle.gif"  },
             { "Dextereous", "Assassin", "100", "4.0", "Shadow Strike – Dodge next attack (CD: 4 turns)",  "assets/miniboss/dex_idle.gif"   },
             { "Cromel",     "Fighter",  "135", "3.0", "Flame Burst – +8 damage bonus (CD: 5 turns)",      "assets/miniboss/cromel.gif"     },
-            { "Selos",      "Assassin", "100", "4.0", "Phantom Step – Extra turn (CD: 4 turns)",          "assets/miniboss/kenz_idle.gif"  },
-            { "Kenz",       "Tank",     "170", "2.0", "Ground Slam – Stun 2 turns (CD: 4 turns)",         "assets/miniboss/selos_idle.gif" },
+            { "Selos",      "Assassin", "100", "4.0", "Phantom Step – Extra turn (CD: 4 turns)",          "assets/miniboss/selos_idle.gif"  },
+            { "Kenz",       "Tank",     "170", "2.0", "Ground Slam – Stun 2 turns (CD: 4 turns)",         "assets/miniboss/kenz_idle.gif" },
     };
 
     public static final String[] MINIFINAL_BOSS = {

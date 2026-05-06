@@ -82,16 +82,13 @@ public class ArcadeBattleScreen extends JPanel {
     private int playerStunTurns = 0, bossStunTurns = 0;
 
     // ── Turn / round ──────────────────────────────────────────────────────────
-    private int     currentTurn    = 1; // 1 = player, 2 = boss
+    private int     currentTurn    = 1;
     private int     roundCount     = 1;
     private boolean waitingForRoll = false;
     private boolean gameOver       = false;
     private boolean playerWon      = false;
 
     // ── BUG FIX: global action lock ───────────────────────────────────────────
-    // Set to true the moment any action starts processing; cleared only when
-    // the full roll-animation-resolve cycle completes. This prevents multiple
-    // clicks from triggering additional attacks while one is mid-flight.
     private boolean actionLocked   = false;
 
     // ── Dice ──────────────────────────────────────────────────────────────────
@@ -428,8 +425,7 @@ public class ArcadeBattleScreen extends JPanel {
         boolean canDefend  = playerDefendCd == 0;
         boolean hasWild    = playerWildcard != null;
 
-        // BUG FIX: buttons are only active when NO action is in flight
-        // actionLocked covers the entire attack-roll-resolve pipeline
+        // BUG FIX: buttons only active when no action is in flight
         boolean buttonsActive = !gameOver && currentTurn==1
                 && !waitingForRoll && !actionLocked && !showDice;
 
@@ -461,11 +457,10 @@ public class ArcadeBattleScreen extends JPanel {
         g2.setColor(new Color(160,120,70,120)); g2.setStroke(new BasicStroke(1));
         g2.drawLine(rightX,py+50,rightX+rightW,py+50);
 
-        String sub = actionLocked || waitingForRoll ? "CLICK TO ROLL!" :
+        String sub = actionLocked && !waitingForRoll ? "RESOLVING..." :
+                waitingForRoll ? "CLICK TO ROLL!" :
                 currentTurn==2 ? "BOSS THINKING..." : "";
         if (!sub.isEmpty()) {
-            // While action is locked, show "RESOLVING..." instead of "CLICK TO ROLL!"
-            if (actionLocked && !waitingForRoll) sub = "RESOLVING...";
             g2.setFont(new Font("Arial",Font.BOLD,14)); g2.setColor(new Color(120,70,10));
             FontMetrics fs=g2.getFontMetrics();
             g2.drawString(sub, rightCenterX-fs.stringWidth(sub)/2, py+68);
@@ -556,7 +551,7 @@ public class ArcadeBattleScreen extends JPanel {
                 if (playerSkillCd>0){addLog("Special on cooldown!");return;}
                 actionLocked = true;
                 doPlayerSpecial(pName,bName);
-                endTurn();
+                if (!waitingForRoll) endTurn();
                 break;
             case "DEFEND":
                 if (playerDefendCd>0){addLog("Defend on cooldown!");return;}
@@ -571,7 +566,7 @@ public class ArcadeBattleScreen extends JPanel {
                 actionLocked = true;
                 doWildcard(pName,bName);
                 playerWildcard=null;
-                endTurn();
+                if (!waitingForRoll) endTurn();
                 break;
         }
     }
@@ -582,14 +577,15 @@ public class ArcadeBattleScreen extends JPanel {
         if (!waitingForRoll) return;
 
         waitingForRoll = false;
-        // actionLocked is already true (set when "ATTACK" was chosen)
+        // actionLocked is already true
 
         String pName=CHARACTERS[playerIndex][0];
         String bName=bossData[0];
 
         die1Val=rand.nextInt(6)+1; die2Val=rand.nextInt(6)+1;
         int total=die1Val+die2Val;
-        double mult=Double.parseDouble(CHARACTERS[playerIndex][3]);
+        // KhaiMode: use GameSettings multiplier for the player only
+        double mult = GameSettings.get().getMultiplier(playerIndex);
         int damage=(int)(total*mult);
 
         if (bossDefending) {
@@ -639,7 +635,9 @@ public class ArcadeBattleScreen extends JPanel {
                 return;
             case "Raze":
                 die1Val=rand.nextInt(6)+1; die2Val=rand.nextInt(6)+1;
-                int dmg=(int)((die1Val+die2Val)*Double.parseDouble(CHARACTERS[playerIndex][3]))+8;
+                // KhaiMode: use GameSettings multiplier for the player
+                double mult = GameSettings.get().getMultiplier(playerIndex);
+                int dmg=(int)((die1Val+die2Val)*mult)+8;
                 lastDamage=dmg; showDice=true;
                 bossHp=Math.max(0,bossHp-dmg); startHitAnimation(2);
                 addLog(pName+" uses Blazing Combo! +"+dmg+" dmg!"); break;
@@ -661,8 +659,8 @@ public class ArcadeBattleScreen extends JPanel {
                 bossStunned=true; bossStunTurns=1; startHitAnimation(2);
                 addLog(pName+" used FREEZE! "+bName+" loses next turn!"); break;
             case "DOUBLE ROLL":
+                // Extra roll: reset lock, set waitingForRoll so player clicks to roll
                 addLog(pName+" used DOUBLE ROLL!");
-                // Similar to Zyah extra turn — let player click to roll
                 actionLocked = false;
                 waitingForRoll = true;
                 repaint();
@@ -705,6 +703,7 @@ public class ArcadeBattleScreen extends JPanel {
                 addLog(bName+" uses Shadow Strike! Dodges next!"); break;
             case "Fighter":
                 die1Val=rand.nextInt(6)+1; die2Val=rand.nextInt(6)+1;
+                // Boss always uses its own multiplier from bossData — not affected by KhaiMode
                 int dmg=(int)((die1Val+die2Val)*Double.parseDouble(bossData[3]))+8;
                 lastDamage=dmg; showDice=true;
                 playerHp=Math.max(0,playerHp-dmg); startHitAnimation(1);
@@ -714,6 +713,7 @@ public class ArcadeBattleScreen extends JPanel {
                 addLog(bName+" uses Ground Slam! "+pName+" stunned!"); break;
             case "Master":
                 die1Val=rand.nextInt(6)+1; die2Val=rand.nextInt(6)+1;
+                // Boss always uses its own multiplier from bossData — not affected by KhaiMode
                 int fdmg=(int)((die1Val+die2Val)*Double.parseDouble(bossData[3]))+5;
                 lastDamage=fdmg;
                 playerHp=Math.max(0,playerHp-fdmg); startHitAnimation(1);
@@ -725,6 +725,7 @@ public class ArcadeBattleScreen extends JPanel {
     private void doBossRoll() {
         die1Val=rand.nextInt(6)+1; die2Val=rand.nextInt(6)+1;
         int total=die1Val+die2Val;
+        // Boss always uses its own multiplier from bossData — not affected by KhaiMode
         double mult=Double.parseDouble(bossData[3]);
         int damage=(int)(total*mult);
         if (playerDefending) {
@@ -766,7 +767,6 @@ public class ArcadeBattleScreen extends JPanel {
         else if (currentTurn==2&&bossStunned){addLog(bossData[0]+" is stunned!"); currentTurn=1;}
 
         // BUG FIX: unlock action when it becomes the player's turn again
-        // (the boss turn manages its own async flow and doesn't need the lock)
         if (currentTurn == 1) actionLocked = false;
 
         repaint();
